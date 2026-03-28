@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "API Server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "PostgreSQL",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "-d"],
+      "port": 5432
+    },
+    {
+      "name": "Drizzle Studio",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["drizzle-kit", "studio"],
+      "port": 4983
+    }
+  ]
+}
