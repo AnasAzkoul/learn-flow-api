@@ -2,7 +2,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { courses } from "./routes/courses.js";
-import { generations } from "./routes/generation.js";
+import { generations } from "./routes/generations/index.js";
 import { auth } from "./utils/auth.ts";
 import type { User, Session } from "./utils/types.ts";
 
