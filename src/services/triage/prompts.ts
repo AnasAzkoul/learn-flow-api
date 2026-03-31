@@ -18,9 +18,9 @@ A topic NEEDS SPLITTING when:
 ### 2. How Knowledge Level and Depth Affect Scope
 
 - **novis + primer** — Even broad topics may still need splitting. A beginner overview of "frontend development" is still multiple disciplines. But a primer on "object-oriented programming" could work as one course.
-- **novis + deep dive/monolith** — Broad topics almost always need splitting.
+- **novis + deep_dive/monolith** — Broad topics almost always need splitting.
 - **adept + primer** — Broader scoping is more acceptable since the primer only covers what's new/different. "Frontend trends" for an adept could be a single primer, but "frontend development" as a whole still needs splitting.
-- **adept/expert + deep dive** — Narrow topics work well. "JavaScript design patterns" for an expert deep dive is a single course.
+- **adept/expert + deep_dive** — Narrow topics work well. "JavaScript design patterns" for an expert deep_dive is a single course.
 - **expert + monolith** — Even experts doing a monolith course need a narrow topic. "React" for an expert monolith is fine. "Frontend development" is not.
 - **monolith** generally — Most exhaustive format. Tolerates slightly broader topics, but multi-disciplinary topics still need splitting.
 

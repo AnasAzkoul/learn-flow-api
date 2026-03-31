@@ -11,3 +11,10 @@ export class TriageError extends ServiceError {
     this.name = "TriageError";
   }
 }
+
+export class OutlineError extends ServiceError {
+  constructor(message: string) {
+    super(message);
+    this.name = "OutlineError";
+  }
+}

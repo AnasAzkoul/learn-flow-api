@@ -15,6 +15,13 @@
       "when": 1774382280915,
       "tag": "0001_luxuriant_scarlet_witch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774804676960,
+      "tag": "0002_green_leper_queen",
+      "breakpoints": true
     }
   ]
 }

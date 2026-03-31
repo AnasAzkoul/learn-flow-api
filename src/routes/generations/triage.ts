@@ -14,7 +14,7 @@ const triageSchema = z.object({
     .max(500, "Subject must be 500 characters or less")
     .describe("This is the subject of the course the user wants to learn"),
   knowledge: z.enum(["novis", "adept", "expert"]),
-  depth: z.enum(["primer", "deep dive", "monolith"]),
+  depth: z.enum(["primer", "deep_dive", "monolith"]),
 });
 
 triage.post("/", zValidator("json", triageSchema), async (c) => {

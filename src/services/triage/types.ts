@@ -115,5 +115,5 @@ export type TriageResponse =
 export interface TriageInput {
   subject: string;
   knowledge: "novis" | "adept" | "expert";
-  depth: "primer" | "deep dive" | "monolith";
+  depth: "primer" | "deep_dive" | "monolith";
 }

@@ -7,6 +7,7 @@ import {
   index,
   pgEnum,
 } from "drizzle-orm/pg-core";
+import { course } from "./courses.schema.ts";
 
 export const genderEnum = pgEnum("gender", [
   "male",
@@ -111,6 +112,7 @@ export const verification = pgTable(
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  courses: many(course),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
