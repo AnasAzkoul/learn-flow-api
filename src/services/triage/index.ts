@@ -1,7 +1,7 @@
 import z from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { anthropic } from "../../utils/anthropic.js";
-import { TriageError } from "../../utils/errors.js";
+import { TriageError } from "../../errors/index.js";
 import { triageApiSchema } from "./types.js";
 import { TRIAGE_SYSTEM_PROMPT } from "./prompts.js";
 import type { TriageInput, TriageResponse } from "./types.js";

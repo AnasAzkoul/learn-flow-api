@@ -1,7 +1,7 @@
 import z from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { anthropic } from "../../utils/anthropic.js";
-import { OutlineError } from "../../utils/errors.js";
+import { OutlineError } from "../../errors/index.js";
 import { outlineApiSchema } from "./types.js";
 import { OUTLINE_SYSTEM_PROMPT } from "./prompts.js";
 import type { OutlineInput, CourseOutline } from "./types.js";
@@ -22,9 +22,7 @@ function narrowOutlineResponse(
     throw new OutlineError("Outline has no modules");
   }
 
-  for (let i = 0; i < raw.modules.length; i++) {
-    const mod = raw.modules[i];
-
+  for (const [i, mod] of raw.modules.entries()) {
     if (mod.lessons.length < 2) {
       throw new OutlineError(
         `Module "${mod.title}" has fewer than 2 lessons`,

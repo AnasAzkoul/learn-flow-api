@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { errorHandler } from "./middleware/error-handler.js";
 import { courses } from "./routes/courses.js";
 import { generations } from "./routes/generations/index.js";
 import { auth } from "./utils/auth.ts";
@@ -9,6 +10,9 @@ import type { User, Session } from "./utils/types.ts";
 const app = new Hono<{
   Variables: { user: User; session: Session };
 }>();
+
+// Global error handler — catches all unhandled errors and returns envelope format
+app.onError(errorHandler);
 
 // TODO: apply authMiddleware to protected authenticted routes
 

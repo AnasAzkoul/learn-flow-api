@@ -1,23 +1,13 @@
 import { Hono } from "hono";
-import z from "zod";
-import { zValidator } from "@hono/zod-validator";
 import Anthropic from "@anthropic-ai/sdk";
 import { evaluateTopicScope } from "../../services/triage/index.js";
-import { TriageError } from "../../utils/errors.js";
+import { TriageError } from "../../errors/index.js";
+import { validate } from "../../validators/validate.js";
+import { generationInputSchema } from "../../validators/generation.validators.js";
 
 const triage = new Hono();
 
-const triageSchema = z.object({
-  subject: z
-    .string()
-    .min(1, "Subject is required")
-    .max(500, "Subject must be 500 characters or less")
-    .describe("This is the subject of the course the user wants to learn"),
-  knowledge: z.enum(["novis", "adept", "expert"]),
-  depth: z.enum(["primer", "deep_dive", "monolith"]),
-});
-
-triage.post("/", zValidator("json", triageSchema), async (c) => {
+triage.post("/", validate("json", generationInputSchema), async (c) => {
   const { subject, knowledge, depth } = c.req.valid("json");
 
   try {

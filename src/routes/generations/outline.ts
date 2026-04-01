@@ -1,25 +1,16 @@
 import { Hono } from "hono";
-import z from "zod";
-import { zValidator } from "@hono/zod-validator";
 import Anthropic from "@anthropic-ai/sdk";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
 import { evaluateTopicScope } from "../../services/triage/index.js";
 import { generateCourseOutline } from "../../services/outline/index.js";
 import { createSSEResponse } from "../../utils/sse.js";
-import { TriageError } from "../../utils/errors.js";
-import { OutlineError } from "../../utils/errors.js";
+import { TriageError } from "../../errors/index.js";
+import { OutlineError } from "../../errors/index.js";
 import { db } from "../../db/index.js";
 import { course, module, lesson } from "../../schemas/courses.schema.js";
+import { validate } from "../../validators/validate.js";
+import { generationInputSchema } from "../../validators/generation.validators.js";
 import type { User, Session } from "../../utils/types.js";
-
-const outlineInputSchema = z.object({
-  subject: z
-    .string()
-    .min(1, "Subject is required")
-    .max(500, "Subject must be 500 characters or less"),
-  knowledge: z.enum(["novis", "adept", "expert"]),
-  depth: z.enum(["primer", "deep_dive", "monolith"]),
-});
 
 const outline = new Hono<{
   Variables: { user: User; session: Session };
@@ -28,7 +19,7 @@ const outline = new Hono<{
 outline.post(
   "/",
   authMiddleware,
-  zValidator("json", outlineInputSchema),
+  validate("json", generationInputSchema),
   async (c) => {
     const { subject, knowledge, depth } = c.req.valid("json");
     const user = c.get("user");
@@ -167,6 +158,10 @@ outline.post(
             })
             .returning();
 
+          if (!newCourse) {
+            throw new Error("Failed to insert course");
+          }
+
           const newModules = await tx
             .insert(module)
             .values(
@@ -180,15 +175,19 @@ outline.post(
             .returning();
 
           await tx.insert(lesson).values(
-            outlineResult.modules.flatMap((mod, i) =>
-              mod.lessons.map((les) => ({
-                moduleId: newModules[i].id,
+            outlineResult.modules.flatMap((mod, i) => {
+              const savedModule = newModules[i];
+              if (!savedModule) {
+                throw new Error(`Module at index ${i} was not inserted`);
+              }
+              return mod.lessons.map((les) => ({
+                moduleId: savedModule.id,
                 title: les.title,
                 description: les.description,
                 type: les.type,
                 order: les.order,
-              })),
-            ),
+              }));
+            }),
           );
 
           return newCourse;
@@ -205,6 +204,14 @@ outline.post(
       }
 
       // --- Step 5: Send result ---
+      if (!savedCourse) {
+        await send({
+          type: "error",
+          data: { message: "Failed to save the course. Please try again." },
+        });
+        return;
+      }
+
       await send({
         type: "outline:complete",
         data: {
