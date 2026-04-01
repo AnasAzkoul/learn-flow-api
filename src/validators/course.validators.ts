@@ -1,11 +1,19 @@
+import { createInsertSchema } from "drizzle-zod";
 import z from "zod";
+import { course } from "../schemas/courses.schema.js";
 
-export const createCourseSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200),
-  description: z.string().min(1, "Description is required").max(2000),
-  subject: z.string().min(1, "Subject is required").max(500),
-  knowledge: z.enum(["novis", "adept", "expert"]),
-  depth: z.enum(["primer", "deep_dive", "monolith"]),
+const baseCourseSchema = createInsertSchema(course, {
+  title: (schema) => schema.min(1, "Title is required").max(200),
+  description: (schema) => schema.min(1, "Description is required").max(2000),
+  subject: (schema) => schema.min(1, "Subject is required").max(500),
+});
+
+export const createCourseSchema = baseCourseSchema.pick({
+  title: true,
+  description: true,
+  subject: true,
+  knowledge: true,
+  depth: true,
 });
 
 export const updateCourseSchema = createCourseSchema.partial();

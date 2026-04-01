@@ -13,104 +13,101 @@ const outline = new Hono<{
   Variables: { user: User; session: Session };
 }>();
 
-outline.post(
-  "/",
-  authMiddleware,
-  validate("json", generationInputSchema),
-  async (c) => {
-    const { subject, knowledge, depth } = c.req.valid("json");
-    const user = c.get("user");
+outline.use(authMiddleware);
 
-    return createSSEResponse(c, async (send) => {
-      // --- Step 1: Triage ---
-      await send({ type: "triage:start" });
+outline.post("/", validate("json", generationInputSchema), async (c) => {
+  const { subject, knowledge, depth } = c.req.valid("json");
+  const user = c.get("user");
 
-      let triageResult;
-      try {
-        triageResult = await evaluateTopicScope({ subject, knowledge, depth });
-      } catch (error) {
-        if (error instanceof AppError) {
-          await send({ type: "error", data: { message: error.message } });
-          return;
-        }
-        throw error;
+  return createSSEResponse(c, async (send) => {
+    // --- Step 1: Triage ---
+    await send({ type: "triage:start" });
+
+    let triageResult;
+    try {
+      triageResult = await evaluateTopicScope({ subject, knowledge, depth });
+    } catch (error) {
+      if (error instanceof AppError) {
+        await send({ type: "error", data: { message: error.message } });
+        return;
       }
+      throw error;
+    }
 
-      await send({
-        type: "triage:complete",
-        data: { verdict: triageResult.verdict },
+    await send({
+      type: "triage:complete",
+      data: { verdict: triageResult.verdict },
+    });
+
+    // --- Step 2: Handle non-single verdicts ---
+    if (triageResult.verdict === "multi") {
+      await send({ type: "multi", data: triageResult });
+      return;
+    }
+    if (triageResult.verdict === "rejected") {
+      await send({ type: "rejected", data: triageResult });
+      return;
+    }
+
+    // --- Step 3: Generate outline ---
+    await send({ type: "outline:start" });
+
+    let outlineResult;
+    try {
+      outlineResult = await generateCourseOutline({
+        title: triageResult.title,
+        description: triageResult.description,
+        subject,
+        knowledge,
+        depth,
+        learningStyle: user.learningStyle ?? "conversational",
+        educationalLevel: user.educationalLevel ?? "degree",
+        occupation: user.occupation ?? "student",
       });
-
-      // --- Step 2: Handle non-single verdicts ---
-      if (triageResult.verdict === "multi") {
-        await send({ type: "multi", data: triageResult });
+    } catch (error) {
+      if (error instanceof AppError) {
+        await send({ type: "error", data: { message: error.message } });
         return;
       }
-      if (triageResult.verdict === "rejected") {
-        await send({ type: "rejected", data: triageResult });
-        return;
-      }
+      throw error;
+    }
 
-      // --- Step 3: Generate outline ---
-      await send({ type: "outline:start" });
-
-      let outlineResult;
-      try {
-        outlineResult = await generateCourseOutline({
-          title: triageResult.title,
-          description: triageResult.description,
+    // --- Step 4: Save to DB ---
+    let savedCourse;
+    try {
+      savedCourse = await createCourseWithOutline(
+        {
+          userId: user.id,
+          title: outlineResult.courseTitle,
+          description: outlineResult.courseDescription,
           subject,
           knowledge,
           depth,
-          learningStyle: user.learningStyle ?? "conversational",
-          educationalLevel: user.educationalLevel ?? "degree",
-          occupation: user.occupation ?? "student",
-        });
-      } catch (error) {
-        if (error instanceof AppError) {
-          await send({ type: "error", data: { message: error.message } });
-          return;
-        }
-        throw error;
-      }
-
-      // --- Step 4: Save to DB ---
-      let savedCourse;
-      try {
-        savedCourse = await createCourseWithOutline(
-          {
-            userId: user.id,
-            title: outlineResult.courseTitle,
-            description: outlineResult.courseDescription,
-            subject,
-            knowledge,
-            depth,
-            learningObjectives: outlineResult.learningObjectives,
-            prerequisites: outlineResult.prerequisites,
-          },
-          outlineResult,
-        );
-      } catch (error) {
-        console.error("Failed to save course:", error);
-        await send({
-          type: "error",
-          data: {
-            message: "Failed to save the course. Please try again.",
-          },
-        });
-        return;
-      }
-
-      // --- Step 5: Send result ---
+          learningObjectives: outlineResult.learningObjectives,
+          prerequisites: outlineResult.prerequisites,
+        },
+        outlineResult,
+      );
+    } catch (error) {
+      console.error("Failed to save course:", error);
       await send({
-        type: "outline:complete",
+        type: "error",
         data: {
-          courseId: savedCourse.id,
-          ...outlineResult,
+          message: "Failed to save the course. Please try again.",
         },
       });
+      return;
+    }
+
+    // --- Step 5: Send result ---
+    await send({
+      type: "outline:complete",
+      data: {
+        courseId: savedCourse.id,
+        ...outlineResult,
+      },
     });
-  },
-);
+  });
+});
 
 export { outline };

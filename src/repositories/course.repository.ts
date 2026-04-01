@@ -1,6 +1,8 @@
 import { eq, desc, asc, count } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { course, module, lesson } from "../schemas/courses.schema.js";
+import { getOffset } from "../utils/pagination.js";
+import type { PaginationParams } from "../utils/pagination.js";
 import type { CourseOutline } from "../services/outline/types.js";
 
 // --- Types ---
@@ -14,12 +16,6 @@ interface CreateCourseData {
   depth: "primer" | "deep_dive" | "monolith";
   learningObjectives: string[];
   prerequisites: string[];
-}
-
-interface PaginationParams {
-  page: number;
-  limit: number;
-  order: "asc" | "desc";
 }
 
 // --- Repository Functions ---
@@ -89,7 +85,7 @@ export async function findAllByUserId(
   userId: string,
   params: PaginationParams,
 ) {
-  const offset = (params.page - 1) * params.limit;
+  const offset = getOffset(params.page, params.limit);
   const orderBy = params.order === "asc" ? asc(course.createdAt) : desc(course.createdAt);
 
   const [data, [countResult]] = await Promise.all([
@@ -113,7 +109,13 @@ export async function findAllByUserId(
 
 export async function updateById(
   id: string,
-  data: Partial<{ title: string; description: string }>,
+  data: {
+    title?: string | undefined;
+    description?: string | undefined;
+    subject?: string | undefined;
+    knowledge?: "novis" | "adept" | "expert" | undefined;
+    depth?: "primer" | "deep_dive" | "monolith" | undefined;
+  },
 ) {
   const [result] = await db
     .update(course)
