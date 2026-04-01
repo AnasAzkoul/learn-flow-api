@@ -1,11 +1,12 @@
 import { createMiddleware } from "hono/factory";
 import { auth } from "../utils/auth.ts";
+import { UnauthorizedError } from "../errors/index.js";
 
 export const authMiddleware = createMiddleware(async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
   if (!session) {
-    return c.json({ error: "Unautherized" }, 401);
+    throw new UnauthorizedError("Authentication required");
   }
 
   c.set("user", session.user);

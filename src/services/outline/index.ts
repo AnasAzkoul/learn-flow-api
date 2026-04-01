@@ -1,7 +1,13 @@
 import z from "zod";
+import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { anthropic } from "../../utils/anthropic.js";
-import { OutlineError } from "../../errors/index.js";
+import {
+  OutlineError,
+  RateLimitError,
+  ExternalServiceError,
+  AppError,
+} from "../../errors/index.js";
 import { outlineApiSchema } from "./types.js";
 import { OUTLINE_SYSTEM_PROMPT } from "./prompts.js";
 import type { OutlineInput, CourseOutline } from "./types.js";
@@ -58,15 +64,35 @@ Learner profile:
 - Educational level: ${input.educationalLevel}
 - Occupation: ${input.occupation}`;
 
-  const response = await anthropic.messages.parse({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 4096,
-    system: OUTLINE_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userMessage }],
-    output_config: {
-      format: zodOutputFormat(outlineApiSchema),
-    },
-  });
+  let response;
+  try {
+    response = await anthropic.messages.parse({
+      model: "claude-sonnet-4-5-20250929",
+      max_tokens: 4096,
+      system: OUTLINE_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userMessage }],
+      output_config: {
+        format: zodOutputFormat(outlineApiSchema),
+      },
+    });
+  } catch (error) {
+    if (error instanceof Anthropic.RateLimitError) {
+      throw new RateLimitError(
+        "Service is temporarily overloaded. Please try again shortly.",
+      );
+    }
+    if (error instanceof Anthropic.AuthenticationError) {
+      console.error("Anthropic API authentication failed:", error.message);
+      throw new AppError("Internal server configuration error.", 500, "CONFIG_ERROR");
+    }
+    if (error instanceof Anthropic.APIError) {
+      console.error("Anthropic API error:", error.message);
+      throw new ExternalServiceError(
+        "Failed to generate course outline. Please try again.",
+      );
+    }
+    throw error;
+  }
 
   if (!response.parsed_output) {
     throw new OutlineError("Failed to parse outline response from Claude");
